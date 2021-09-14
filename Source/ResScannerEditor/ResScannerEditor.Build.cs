@@ -26,6 +26,9 @@ public class ResScannerEditor : ModuleRules
 			new string[]
 			{
 				"Core",
+				"ResScanner",
+				"Json",
+				"JsonUtilities"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

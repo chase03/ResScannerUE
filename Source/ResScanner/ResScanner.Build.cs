@@ -26,6 +26,8 @@ public class ResScanner : ModuleRules
 			new string[]
 			{
 				"Core",
+				"Json",
+				"JsonUtilities"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -38,6 +40,7 @@ public class ResScanner : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"AssetRegistry"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
