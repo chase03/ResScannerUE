@@ -28,7 +28,9 @@ public class ResScannerEditor : ModuleRules
 				"Core",
 				"ResScanner",
 				"Json",
-				"JsonUtilities"
+				"JsonUtilities",
+				"Projects",
+				"DesktopPlatform"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -41,6 +43,8 @@ public class ResScannerEditor : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"UnrealEd",
+				"EditorStyle"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

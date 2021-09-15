@@ -4,6 +4,8 @@
 #include "TemplateHelper.hpp"
 // engine header
 #include "CoreMinimal.h"
+
+#include "ResScannerProxy.h"
 #include "Misc/FileHelper.h"
 #include "Misc/CommandLine.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -34,29 +36,16 @@ int32 UResScannerCommandlet::Main(const FString& Params)
 	if (FFileHelper::LoadFileToString(JsonContent, *config_path))
 	{
 		UE_LOG(LogResScannerCommandlet, Display, TEXT("%s"), *JsonContent);
-		FScannerConfig CookConfig;
-		TemplateHelper::TDeserializeJsonStringAsStruct(JsonContent,CookConfig);
-		
-		// TMap<FString, FString> KeyValues = UFlibPatchParserHelper::GetCommandLineParamsMap(Params);
-		// UFlibPatchParserHelper::ReplaceProperty(CookConfig, KeyValues);
-		//
-		// if (CookConfig.bCookAllMap)
-		// {
-		// 	CookConfig.CookMaps = UFlibPatchParserHelper::GetAvailableMaps(UKismetSystemLibrary::GetProjectDirectory(), ENABLE_COOK_ENGINE_MAP, ENABLE_COOK_PLUGIN_MAP, true);
-		// }
-		// FString CookCommand;
-		// UFlibPatchParserHelper::GetCookProcCommandParams(CookConfig, CookCommand);
-		//
-		// UE_LOG(LogResScannerCommandlet, Display, TEXT("CookCommand:%s %s"), *CookConfig.EngineBin,*CookCommand);
-		//
-		// if (FPaths::FileExists(CookConfig.EngineBin) && FPaths::FileExists(CookConfig.ProjectPath))
-		// {
-		// 	CookerProc = MakeShareable(new FProcWorkerThread(TEXT("CookThread"), CookConfig.EngineBin, CookCommand));
-		// 	CookerProc->ProcOutputMsgDelegate.AddStatic(&::ReceiveOutputMsg);
-		//
-		// 	CookerProc->Execute();
-		// 	CookerProc->Join();
-		// }
+		FScannerConfig ScannerConfig;
+		TemplateHelper::TDeserializeJsonStringAsStruct(JsonContent,ScannerConfig);
+		UResScannerProxy* ScannerProxy = NewObject<UResScannerProxy>();
+		ScannerProxy->Init();
+		ScannerProxy->SetScannerConfig(ScannerConfig);
+		ScannerProxy->DoScan();
+		const FMatchedResult& Result = ScannerProxy->GetScanResult();
+		FString OutString;
+		TemplateHelper::TSerializeStructAsJsonString(Result,OutString);
+		UE_LOG(LogResScannerCommandlet, Error, TEXT("Asset Scan Result:\n%s"), *OutString);
 	}
 	if(FParse::Param(FCommandLine::Get(), TEXT("wait")))
 	{

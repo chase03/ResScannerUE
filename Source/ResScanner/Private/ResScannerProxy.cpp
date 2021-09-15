@@ -1,5 +1,8 @@
 #include "ResScannerProxy.h"
 
+DEFINE_LOG_CATEGORY(LogResScannerProxy);
+#define LOCTEXT_NAMESPACE "UResScannerProxy"
+
 void UResScannerProxy::Init()
 {
 	MatchedResult.Assets.Empty();
@@ -23,6 +26,11 @@ void UResScannerProxy::DoScan()
 	MatchedResult.Assets.Empty();
 	for(const auto& ScannerRule:GetScannerConfig()->ScannerRules)
 	{
+		if(!ScannerRule.ScanFilters.Num())
+		{
+			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s not contain any filters!"),*ScannerRule.RuleName);
+			continue;
+		}
 		TArray<FAssetData> FilterAssets = UFlibAssetParseHelper::GetAssetsByFilters(ScannerRule.ScanAssetTypes,ScannerRule.ScanFilters);
 		FMatchedInfo MatchedInfo;
 		MatchedInfo.RuleName = ScannerRule.RuleName;
@@ -53,9 +61,33 @@ void UResScannerProxy::DoScan()
 			MatchedResult.Assets.Add(MatchedInfo);
 		}
 	}
-	FString OutString;
-	TemplateHelper::TSerializeStructAsJsonString(MatchedResult,OutString);
-	UE_LOG(LogTemp,Log,TEXT("%s"),*OutString);
+	FString Name = GetScannerConfig()->ConfigName;
+	if(Name.IsEmpty())
+	{
+		Name = FDateTime::UtcNow().ToString();
+	}
+	if(GetScannerConfig()->bSaveConfig)
+	{
+		FString SerializedJsonStr;
+		TemplateHelper::TSerializeStructAsJsonString(*ScannerConfig,SerializedJsonStr);
+		FString SavePath = FPaths::Combine(FPaths::ConvertRelativePathToFull(GetScannerConfig()->SavePath.Path),FString::Printf(TEXT("%s_config.json"),*Name));
+		if(FFileHelper::SaveStringToFile(SerializedJsonStr, *SavePath) && !IsRunningCommandlet())
+		{
+			FText Msg = LOCTEXT("SavedScanConfigMag", "Successd to Export the Config.");
+			UFlibAssetParseHelper::CreateSaveFileNotify(Msg,SavePath,SNotificationItem::CS_Success);
+		}
+	}
+	if(GetScannerConfig()->bSaveResult)
+	{
+		FString SerializedJsonStr;
+		TemplateHelper::TSerializeStructAsJsonString(MatchedResult,SerializedJsonStr);
+		FString SavePath = FPaths::Combine(FPaths::ConvertRelativePathToFull(GetScannerConfig()->SavePath.Path),FString::Printf(TEXT("%s_result.json"),*Name));
+		if(FFileHelper::SaveStringToFile(SerializedJsonStr, *SavePath) && !IsRunningCommandlet())
+		{
+			FText Msg = LOCTEXT("SavedScanResultMag", "Successd to Export the scan result.");
+			UFlibAssetParseHelper::CreateSaveFileNotify(Msg,SavePath,SNotificationItem::CS_Success);
+		}
+	}
 }
 
 void UResScannerProxy::SetScannerConfig(FScannerConfig InConfig)
@@ -66,3 +98,4 @@ void UResScannerProxy::SetScannerConfig(FScannerConfig InConfig)
 	}
 	*ScannerConfig = InConfig;
 }
+#undef LOCTEXT_NAMESPACE

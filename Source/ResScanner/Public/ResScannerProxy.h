@@ -4,7 +4,9 @@
 #include "CoreMinimal.h"
 #include "Templates/SharedPointer.h"
 #include "ResScannerProxy.generated.h"
- 
+
+DECLARE_LOG_CATEGORY_EXTERN(LogResScannerProxy, Log, All);
+
 UCLASS(BlueprintType)
 class RESSCANNER_API UResScannerProxy:public UObject
 {
@@ -21,6 +23,7 @@ public:
     
     virtual TSharedPtr<FScannerConfig> GetScannerConfig(){return ScannerConfig;}
     virtual TMap<FString,TSharedPtr<IMatchOperator>>& GetMatchOperators(){return MatchOperators;}
+    virtual FMatchedResult& GetScanResult(){return MatchedResult;}
 private:
     FMatchedResult MatchedResult;
     TSharedPtr<FScannerConfig> ScannerConfig;

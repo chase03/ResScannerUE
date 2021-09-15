@@ -9,18 +9,15 @@ UENUM(BlueprintType)
 enum class ENameMatchMode : uint8
 {
 	StartWith,
-	NotStartWith,
 	EndWith,
-	NotEndWith,
-	Wildcard,
-	NotWildcard
+	Wildcard
 };
 
 UENUM(BlueprintType)
 enum class EPathMatchMode : uint8
 {
 	WithIn,
-	WithOut
+	Wildcard,
 };
 
 USTRUCT(BlueprintType)
@@ -31,7 +28,10 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	ENameMatchMode MatchMode;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bReverseCheck;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FString Rule;
+
 };
 
 USTRUCT(BlueprintType)
@@ -41,6 +41,8 @@ struct FPathMatchRule
 public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	EPathMatchMode MatchMode;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bReverseCheck;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FString Rule;
 };
@@ -70,7 +72,7 @@ struct FIgnoreRule
 {
 	GENERATED_USTRUCT_BODY()
 public:
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter",meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> IgnoreFilters;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FSoftObjectPath> IgnoreAssets;
@@ -114,13 +116,27 @@ struct FScannerConfig
 {
 	GENERATED_USTRUCT_BODY()
 public:
+	FORCEINLINE static FScannerConfig* Get()
+	{
+		static FScannerConfig StaticIns;
+
+		return &StaticIns;
+	}
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FString ConfigName;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FScannerMatchRule> ScannerRules;
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FIgnoreRule> GlobalIgnoreRules;
 
-	TMap<FString,TFunction<bool(const FAssetData&,const FScannerConfig&)>> MatchOperators;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bSaveConfig = true;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bSaveResult = true;
+	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FDirectoryPath SavePath;
 };
 
 USTRUCT(BlueprintType)
@@ -146,9 +162,6 @@ public:
 	TArray<FAssetData> Assets;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FString> AssetPackageNames;
-	// UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	// TArray<FMatchedRuleAsset> Assets;
-	
 };
 
 USTRUCT(BlueprintType)
