@@ -8,6 +8,7 @@
 #include "Kismet/KismetStringLibrary.h"
 #include "AssetRegistryModule.h"
 #include "ARFilter.h"
+#include "Engine/AssetManager.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
@@ -99,6 +100,54 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FStrin
 	return Result;
 }
 
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSoftObjectPath> SoftObjectPaths)
+{
+	TArray<FAssetData> result;
+	UAssetManager& AssetManager = UAssetManager::Get();
+	for(const auto& ObjectPath:SoftObjectPaths)
+	{
+		FAssetData OutAssetData;
+		if (AssetManager.GetAssetDataForPath(ObjectPath, OutAssetData) && OutAssetData.IsValid())
+		{
+			result.AddUnique(OutAssetData);
+		}
+	}
+	return result;
+}
+
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
+	const TArray<UClass*> AssetTypes)
+{
+	TArray<FString> Types;
+	for(auto& Type:AssetTypes)
+	{
+		if(IsValid(Type))
+		{
+			Types.AddUnique(Type->GetName());
+		}
+	}
+	return UFlibAssetParseHelper::GetAssetsWithCachedByTypes(CachedAssets,Types);
+}
+
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
+                                                                     const TArray<FString> AssetTypes)
+{
+	TArray<FAssetData> result;
+	for(const auto& CachedAsset:CachedAssets)
+	{
+		for(const auto& Type:AssetTypes)
+		{
+			if(CachedAsset.AssetClass.ToString().Equals(Type))
+			{
+				result.AddUnique(CachedAsset);
+				break;
+			}
+		}
+	}
+	return result;
+}
+
+
 IAssetRegistry& UFlibAssetParseHelper::GetAssetRegistry(bool bSearchAllAssets)
 {
 	
@@ -110,12 +159,12 @@ IAssetRegistry& UFlibAssetParseHelper::GetAssetRegistry(bool bSearchAllAssets)
 	return AssetRegistryModule.Get();
 }
 
-bool UFlibAssetParseHelper::IsIgnoreAsset(const FAssetData& AssetData, const TArray<FIgnoreRule>& IgnoreRules)
+bool UFlibAssetParseHelper::IsIgnoreAsset(const FAssetData& AssetData, const TArray<FAssetFilters>& IgnoreRules)
 {
 	bool bIsIgnored = false;
 	for(const auto& IgnoreRule:IgnoreRules)
 	{
-		for(const auto& Filter: IgnoreRule.IgnoreFilters)
+		for(const auto& Filter: IgnoreRule.Filters)
 		{
 			if(AssetData.PackagePath.ToString().StartsWith(Filter.Path))
 			{
@@ -125,7 +174,7 @@ bool UFlibAssetParseHelper::IsIgnoreAsset(const FAssetData& AssetData, const TAr
 		}
 		if(!bIsIgnored)
 		{
-			for(const auto& Asset: IgnoreRule.IgnoreAssets)
+			for(const auto& Asset: IgnoreRule.Assets)
 			{
 				if(AssetData.ObjectPath.ToString().Equals(Asset.GetAssetPathString()))
 				{

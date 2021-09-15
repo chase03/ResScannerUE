@@ -68,14 +68,14 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FIgnoreRule
+struct FAssetFilters
 {
 	GENERATED_USTRUCT_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter",meta = (RelativeToGameContentDir, LongPackageName))
-	TArray<FDirectoryPath> IgnoreFilters;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta = (RelativeToGameContentDir, LongPackageName))
+	TArray<FDirectoryPath> Filters;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	TArray<FSoftObjectPath> IgnoreAssets;
+	TArray<FSoftObjectPath> Assets;
 };
 
 UCLASS(Blueprintable,BlueprintType)
@@ -121,7 +121,7 @@ public:
 	TArray<TSubclassOf<UOperatorBase>> CustomRules;
 	// 忽略本规则的路径、资源列表
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
-	TArray<FIgnoreRule> IgnoreRules;
+	FAssetFilters IgnoreFilters;
 
 	bool HasValidRules()const
 	{
@@ -138,17 +138,23 @@ public:
 	FORCEINLINE static FScannerConfig* Get()
 	{
 		static FScannerConfig StaticIns;
-
 		return &StaticIns;
 	}
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FString ConfigName;
+	// if true,only scan the GlobalScanFilters assets
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bByGlobalScanFilters = false;
+	// if bByGlobalFilters is true,all rule using the filter assets
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,meta=(EditCondition="bByGlobalScanFilters"))
+	FAssetFilters GlobalScanFilters;
+	// force ignore assets,don't match any rule
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	TArray<FAssetFilters> GlobalIgnoreFilters;
+	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FScannerMatchRule> ScannerRules;
 	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	TArray<FIgnoreRule> GlobalIgnoreRules;
-
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bSaveConfig = true;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
