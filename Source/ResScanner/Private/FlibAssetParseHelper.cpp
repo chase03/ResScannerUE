@@ -62,8 +62,22 @@ FString UFlibAssetParseHelper::GetPropertyValueByName(UObject* Obj, const FStrin
 	return Result;
 }
 
-TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFiltersByClass(const TArray<UClass*> AssetTypes,
 	const TArray<FDirectoryPath>& FilterDirectorys)
+{
+	TArray<FString> Types;
+	for(auto& Type:AssetTypes)
+	{
+		if(IsValid(Type))
+		{
+			Types.AddUnique(Type->GetName());
+		}
+	}
+	return UFlibAssetParseHelper::GetAssetsByFilters(Types,FilterDirectorys);
+}
+
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
+                                                             const TArray<FDirectoryPath>& FilterDirectorys)
 {
 	TArray<FString> FilterPaths;
 	for(const auto& Directory:FilterDirectorys)
@@ -230,10 +244,10 @@ bool PropertyMatchOperator::Match(const FAssetData& AssetData,const FScannerMatc
 	}
 	return bIsMatched;
 }
-bool ExternalMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchRule& Rule)
+bool CustomMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchRule& Rule)
 {
 	bool bIsMatched = true;
-	for(auto ExOperator:Rule.ExternalRules)
+	for(auto ExOperator:Rule.CustomRules)
 	{
 		if(IsValid(ExOperator))
 		{

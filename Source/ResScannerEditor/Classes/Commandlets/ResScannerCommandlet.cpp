@@ -19,8 +19,8 @@ int32 UResScannerCommandlet::Main(const FString& Params)
 {
 	UE_LOG(LogResScannerCommandlet, Display, TEXT("UResScannerCommandlet::Main"));
 	FString config_path;
-	bool bStatus = FParse::Value(*Params, *FString(COOKER_CONFIG_PARAM_NAME).ToLower(), config_path);
-	if (!bStatus)
+	bool bConfigStatus = FParse::Value(*Params, *FString(COOKER_CONFIG_PARAM_NAME).ToLower(), config_path);
+	if (!bConfigStatus)
 	{
 		UE_LOG(LogResScannerCommandlet, Error, TEXT("not -config=xxxx.json params."));
 		return -1;
@@ -45,7 +45,7 @@ int32 UResScannerCommandlet::Main(const FString& Params)
 		const FMatchedResult& Result = ScannerProxy->GetScanResult();
 		FString OutString;
 		TemplateHelper::TSerializeStructAsJsonString(Result,OutString);
-		UE_LOG(LogResScannerCommandlet, Error, TEXT("Asset Scan Result:\n%s"), *OutString);
+		UE_LOG(LogResScannerCommandlet, Log, TEXT("\nAsset Scan Result:\n%s"), *OutString);
 	}
 	if(FParse::Param(FCommandLine::Get(), TEXT("wait")))
 	{

@@ -92,22 +92,41 @@ struct FScannerMatchRule
 {
 	GENERATED_USTRUCT_BODY()
 public:
+	// 规则名
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	FString RuleName;
+	// 规则描述
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
+	FString RuleDescribe;
+	// 是否启用当前规则
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
+	bool bEnableRule = true;
+	// 扫描资源路径
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter",meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> ScanFilters;
+	// 资源类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
-	TArray<FString> ScanAssetTypes;
+	TArray<UClass*> ScanAssetTypes;
+	// 命名匹配规则
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	TArray<FNameMatchRule> NameMatchRules;
+	// 路径匹配规则
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	TArray<FPathMatchRule> PathMatchRules;
+	// 属性匹配规则
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	TArray<FPropertyMatchRule> PropertyMatchRules;
+	// 自定义匹配规则（派生自UOperatorBase的类）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
-	TArray<TSubclassOf<UOperatorBase>> ExternalRules;
+	TArray<TSubclassOf<UOperatorBase>> CustomRules;
+	// 忽略本规则的路径、资源列表
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	TArray<FIgnoreRule> IgnoreRules;
+
+	bool HasValidRules()const
+	{
+		return (NameMatchRules.Num() || PathMatchRules.Num() || PropertyMatchRules.Num() || CustomRules.Num());
+	}
 };
 
 
@@ -158,6 +177,11 @@ struct FMatchedInfo
 public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FString RuleName;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FString RuleDescribe;
+	// 该规则在配置数组中的下标
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	int32 RuleID;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, transient)
 	TArray<FAssetData> Assets;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
@@ -170,5 +194,5 @@ struct FMatchedResult
 	GENERATED_USTRUCT_BODY()
 public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	TArray<FMatchedInfo> Assets;
+	TArray<FMatchedInfo> MatchedAssets;
 };

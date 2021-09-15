@@ -22,6 +22,7 @@ public:
 	static FProperty* GetPropertyByName(UObject* Obj,const FString& PropertyName);
 	UFUNCTION(BlueprintCallable)
 	static FString GetPropertyValueByName(UObject* Obj,const FString& PropertyName);
+	static TArray<FAssetData> GetAssetsByFiltersByClass(const TArray<UClass*> AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
 	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
 	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FString>& FilterPaths);
 	static IAssetRegistry& GetAssetRegistry(bool bSearchAllAssets = false);
@@ -53,7 +54,7 @@ struct PropertyMatchOperator:public IMatchOperator
 	virtual FString GetOperatorName(){ return TEXT("PropertyMatchRule");};
 };
 
-struct ExternalMatchOperator:public IMatchOperator
+struct CustomMatchOperator:public IMatchOperator
 {
 	virtual bool Match(const FAssetData& AssetData,const FScannerMatchRule& Rule);
 	virtual FString GetOperatorName(){ return TEXT("ExternalMatchRule");};

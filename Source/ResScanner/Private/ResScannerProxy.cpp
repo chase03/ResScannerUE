@@ -5,7 +5,7 @@ DEFINE_LOG_CATEGORY(LogResScannerProxy);
 
 void UResScannerProxy::Init()
 {
-	MatchedResult.Assets.Empty();
+	MatchedResult.MatchedAssets.Empty();
 	if(!GetScannerConfig().IsValid())
 	{
 		ScannerConfig = MakeShareable(new FScannerConfig);
@@ -13,27 +13,40 @@ void UResScannerProxy::Init()
 	MatchOperators.Add(TEXT("NameMatchRule"),MakeShareable(new NameMatchOperator));
 	MatchOperators.Add(TEXT("PathMatchRule"),MakeShareable(new PathMatchOperator));
 	MatchOperators.Add(TEXT("PropertyMatchRule"),MakeShareable(new PropertyMatchOperator));
-	MatchOperators.Add(TEXT("ExternalMatchRule"),MakeShareable(new ExternalMatchOperator));
+	MatchOperators.Add(TEXT("CustomMatchRule"),MakeShareable(new CustomMatchOperator));
 }
 
 void UResScannerProxy::Shutdown()
 {
-	MatchedResult.Assets.Empty();
+	MatchedResult.MatchedAssets.Empty();
 }
 
 void UResScannerProxy::DoScan()
 {
-	MatchedResult.Assets.Empty();
-	for(const auto& ScannerRule:GetScannerConfig()->ScannerRules)
+	MatchedResult.MatchedAssets.Empty();
+	for(int32 RuleID = 0;RuleID < GetScannerConfig()->ScannerRules.Num();++RuleID)
 	{
+		FScannerMatchRule& ScannerRule = GetScannerConfig()->ScannerRules[RuleID];
+		if(!ScannerRule.bEnableRule)
+		{
+			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s is missed!"),*ScannerRule.RuleName);
+			continue;
+		}
 		if(!ScannerRule.ScanFilters.Num())
 		{
 			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s not contain any filters!"),*ScannerRule.RuleName);
 			continue;
 		}
-		TArray<FAssetData> FilterAssets = UFlibAssetParseHelper::GetAssetsByFilters(ScannerRule.ScanAssetTypes,ScannerRule.ScanFilters);
+		if(!ScannerRule.HasValidRules())
+		{
+			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s not contain any rules!"),*ScannerRule.RuleName);
+			continue;
+		}
+		TArray<FAssetData> FilterAssets = UFlibAssetParseHelper::GetAssetsByFiltersByClass(ScannerRule.ScanAssetTypes,ScannerRule.ScanFilters);
 		FMatchedInfo MatchedInfo;
 		MatchedInfo.RuleName = ScannerRule.RuleName;
+		MatchedInfo.RuleDescribe = ScannerRule.RuleDescribe;
+		MatchedInfo.RuleID  = RuleID;
 		for(const auto& Asset:FilterAssets)
 		{
 			if(!UFlibAssetParseHelper::IsIgnoreAsset(Asset,GetScannerConfig()->GlobalIgnoreRules) &&
@@ -58,7 +71,7 @@ void UResScannerProxy::DoScan()
 		}
 		if(!!MatchedInfo.Assets.Num())
 		{
-			MatchedResult.Assets.Add(MatchedInfo);
+			MatchedResult.MatchedAssets.Add(MatchedInfo);
 		}
 	}
 	FString Name = GetScannerConfig()->ConfigName;

@@ -172,7 +172,9 @@ void SResScannerConfigPage::ResetConfig()
 	TemplateHelper::TSerializeStructAsJsonString(*FScannerConfig::Get(),DefaultSettingJson);
 	TemplateHelper::TDeserializeJsonStringAsStruct(DefaultSettingJson,*ScannerConfig);
 	SettingsView->GetDetailsView()->ForceRefresh();
-
+	ContentsWidget->SetContent(TEXT(""));
+	ContentsWidget->SetExpanded(false);
+	ContentsWidget->SetVisibility(EVisibility::Hidden);
 }
 
 void SResScannerConfigPage::DoScanWork()const
