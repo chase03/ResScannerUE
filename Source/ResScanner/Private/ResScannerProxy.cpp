@@ -32,6 +32,7 @@ void UResScannerProxy::DoScan()
 	}
 	for(int32 RuleID = 0;RuleID < GetScannerConfig()->ScannerRules.Num();++RuleID)
 	{
+		FRuleMatchedInfo RuleMatchedInfo;
 		FScannerMatchRule& ScannerRule = GetScannerConfig()->ScannerRules[RuleID];
 		if(!ScannerRule.bEnableRule)
 		{
@@ -48,19 +49,18 @@ void UResScannerProxy::DoScan()
 			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s not contain any rules!"),*ScannerRule.RuleName);
 			continue;
 		}
-		const TArray<FAssetData>& FilterAssets = GetScannerConfig()->bByGlobalScanFilters ?
-			UFlibAssetParseHelper::GetAssetsWithCachedByTypes(GlobalAssets,ScannerRule.ScanAssetTypes):
-			UFlibAssetParseHelper::GetAssetsByFiltersByClass(ScannerRule.ScanAssetTypes,ScannerRule.ScanFilters);
-		
-		FMatchedInfo MatchedInfo;
-		MatchedInfo.RuleName = ScannerRule.RuleName;
-		MatchedInfo.RuleDescribe = ScannerRule.RuleDescribe;
-		MatchedInfo.RuleID  = RuleID;
+		TArray<FAssetData> FilterAssets = GetScannerConfig()->bByGlobalScanFilters ?
+			UFlibAssetParseHelper::GetAssetsWithCachedByTypes(GlobalAssets,TArray<UClass*>{ScannerRule.ScanAssetType}):
+			UFlibAssetParseHelper::GetAssetsByFiltersByClass(TArray<UClass*>{ScannerRule.ScanAssetType},ScannerRule.ScanFilters);
+
+		RuleMatchedInfo.RuleName = ScannerRule.RuleName;
+		RuleMatchedInfo.RuleDescribe = ScannerRule.RuleDescribe;
+		RuleMatchedInfo.RuleID  = RuleID;
+		TArray<FAssetFilters> FinalIgnoreFilters = GetScannerConfig()->GlobalIgnoreFilters;
+		FinalIgnoreFilters.Add(ScannerRule.IgnoreFilters);
 		for(const auto& Asset:FilterAssets)
 		{
-			if(!UFlibAssetParseHelper::IsIgnoreAsset(Asset,GetScannerConfig()->GlobalIgnoreFilters) &&
-			   !UFlibAssetParseHelper::IsIgnoreAsset(Asset,TArray<FAssetFilters>{ScannerRule.IgnoreFilters})
-			)
+			if(!UFlibAssetParseHelper::IsIgnoreAsset(Asset,FinalIgnoreFilters))
 			{
 				bool bMatchAllRules = true;
 				for(const auto& Operator:GetMatchOperators())
@@ -73,14 +73,19 @@ void UResScannerProxy::DoScan()
 				}
 				if(bMatchAllRules)
 				{
-					MatchedInfo.Assets.AddUnique(Asset);
-					MatchedInfo.AssetPackageNames.AddUnique(Asset.PackageName.ToString());
+					RuleMatchedInfo.Assets.AddUnique(Asset);
+					RuleMatchedInfo.AssetPackageNames.AddUnique(Asset.PackageName.ToString());
 				}
 			}
 		}
-		if(!!MatchedInfo.Assets.Num())
+		if(!!RuleMatchedInfo.Assets.Num())
 		{
-			MatchedResult.MatchedAssets.Add(MatchedInfo);
+			if(ScannerRule.bEnablePostProcessor)
+			{
+				// 对扫描之后的资源进行后处理（可以执行自动化处理操作）
+				PostProcessorMatchRule(ScannerRule,RuleMatchedInfo);
+			}
+			MatchedResult.MatchedAssets.Add(RuleMatchedInfo);
 		}
 	}
 	FString Name = GetScannerConfig()->ConfigName;
@@ -119,5 +124,20 @@ void UResScannerProxy::SetScannerConfig(FScannerConfig InConfig)
 		ScannerConfig = MakeShareable(new FScannerConfig);
 	}
 	*ScannerConfig = InConfig;
+}
+
+void UResScannerProxy::PostProcessorMatchRule(const FScannerMatchRule& Rule,const FRuleMatchedInfo& RuleMatchedInfo)
+{
+	for(const auto& PostProcessorClass:Rule.PostProcessors)
+	{
+		if(IsValid(PostProcessorClass))
+		{
+			UScannnerPostProcessorBase* PostProcessorIns = Cast<UScannnerPostProcessorBase>(PostProcessorClass->GetDefaultObject());
+			if(PostProcessorIns)
+			{
+				PostProcessorIns->Processor(RuleMatchedInfo,Rule.ScanAssetType->GetName());
+			}
+		}
+	}
 }
 #undef LOCTEXT_NAMESPACE

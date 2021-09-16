@@ -26,8 +26,8 @@ public:
 	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
 	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FString>& FilterPaths);
 	static TArray<FAssetData> GetAssetsByObjectPath(const TArray<FSoftObjectPath> SoftObjectPaths);
-	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<UClass*> AssetTypes);
-	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<FString> AssetTypes);
+	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<UClass*>& AssetTypes);
+	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<FString>& AssetTypes);
 	static class IAssetRegistry& GetAssetRegistry(bool bSearchAllAssets = false);
 	static bool IsIgnoreAsset(const FAssetData& AssetData,const TArray<FAssetFilters>& IgnoreRules);
 };

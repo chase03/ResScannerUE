@@ -74,7 +74,7 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFiltersByClass(const TArray
 			Types.AddUnique(Type->GetName());
 		}
 	}
-	return UFlibAssetParseHelper::GetAssetsByFilters(Types,FilterDirectorys);
+	return std::move(UFlibAssetParseHelper::GetAssetsByFilters(Types,FilterDirectorys));
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
@@ -85,19 +85,19 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FStrin
 	{
 		FilterPaths.AddUnique(Directory.Path);
 	}
-	return UFlibAssetParseHelper::GetAssetsByFilters(AssetTypes,FilterPaths);
+	return std::move(UFlibAssetParseHelper::GetAssetsByFilters(AssetTypes,FilterPaths));
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
                                                              const TArray<FString>& FilterPaths)
 {
-	TArray<FAssetData> Result;
+	TArray<FAssetData> result;
 	FARFilter Filter;
 	Filter.PackagePaths.Append(FilterPaths);
 	Filter.ClassNames.Append(AssetTypes);
 	Filter.bRecursivePaths = true;
-	UFlibAssetParseHelper::GetAssetRegistry().GetAssets(Filter, Result);
-	return Result;
+	UFlibAssetParseHelper::GetAssetRegistry().GetAssets(Filter, result);
+	return std::move(result);
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSoftObjectPath> SoftObjectPaths)
@@ -112,11 +112,11 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSo
 			result.AddUnique(OutAssetData);
 		}
 	}
-	return result;
+	return std::move(result);
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
-	const TArray<UClass*> AssetTypes)
+	const TArray<UClass*>& AssetTypes)
 {
 	TArray<FString> Types;
 	for(auto& Type:AssetTypes)
@@ -126,11 +126,15 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArra
 			Types.AddUnique(Type->GetName());
 		}
 	}
-	return UFlibAssetParseHelper::GetAssetsWithCachedByTypes(CachedAssets,Types);
+	if(!Types.Num())
+	{
+		UE_LOG(LogFlibAssetParseHelper,Error,TEXT("GetAssetsWithCachedByTypes Types is Emppty,Search all asset types."));
+	}
+	return std::move(UFlibAssetParseHelper::GetAssetsWithCachedByTypes(CachedAssets,Types));
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
-                                                                     const TArray<FString> AssetTypes)
+                                                                     const TArray<FString>& AssetTypes)
 {
 	TArray<FAssetData> result;
 	for(const auto& CachedAsset:CachedAssets)
@@ -144,7 +148,7 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArra
 			}
 		}
 	}
-	return result;
+	return std::move(result);
 }
 
 
@@ -196,59 +200,87 @@ bool NameMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchRul
 {
 	bool bIsMatched = true;
 	FString AssetName = AssetData.AssetName.ToString();
-	for(const auto& MatchRule:Rule.NameMatchRules)
+	for(const auto& MatchRule:Rule.NameMatchRules.Rules)
 	{
-		switch (MatchRule.MatchMode)
+		int32 OptionalMatchNum = 0;
+		for(const auto& RuleItem:MatchRule.Rules)
 		{
-		case ENameMatchMode::StartWith:
+			bool bMatchResult = false;
+			switch (MatchRule.MatchMode)
 			{
-				bIsMatched = AssetName.StartsWith(MatchRule.Rule);
-				break;
+			case ENameMatchMode::StartWith:
+				{
+					bMatchResult = AssetName.StartsWith(RuleItem);
+					break;
+				}
+			case ENameMatchMode::EndWith:
+				{
+					bMatchResult = AssetName.EndsWith(RuleItem);
+					break;
+				}
+			case ENameMatchMode::Wildcard:
+				{
+					bMatchResult = AssetName.MatchesWildcard(RuleItem,ESearchCase::IgnoreCase);
+					break;
+				}
 			}
-		case ENameMatchMode::EndWith:
+			if(bMatchResult)
 			{
-				bIsMatched = AssetName.EndsWith(MatchRule.Rule);
-				break;
-			}
-		case ENameMatchMode::Wildcard:
-			{
-				bIsMatched = AssetName.MatchesWildcard(MatchRule.Rule,ESearchCase::IgnoreCase);
-				break;
+				OptionalMatchNum++;
 			}
 		}
-		bIsMatched = MatchRule.bReverseCheck ? !bIsMatched : bIsMatched;
+		bool bIsMatchAllRules = (OptionalMatchNum == MatchRule.Rules.Num());
+		// Optional中匹配成功的数量必须与配置的一致
+		bIsMatched = (MatchRule.MatchLogic == EMatchLogic::Necessary) ? bIsMatchAllRules : (MatchRule.OptionalRuleMatchNum == OptionalMatchNum);
 		if(!bIsMatched)
 		{
 			break;
 		}
 	}
+	if(Rule.NameMatchRules.Rules.Num())
+	{
+		bIsMatched = Rule.NameMatchRules.bReverseCheck ? !bIsMatched : bIsMatched;
+	}
 	return bIsMatched;
 }
 bool PathMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchRule& Rule)
-
 {
 	bool bIsMatched = true;
 	FString AssetPath = AssetData.ObjectPath.ToString();
-	for(const auto& MatchRule:Rule.PathMatchRules)
+	for(const auto& MatchRule:Rule.PathMatchRules.Rules)
 	{
-		switch (MatchRule.MatchMode)
+		int32 OptionalMatchNum = 0;
+		for(const auto& RuleItem:MatchRule.Rules)
 		{
-		case EPathMatchMode::WithIn:
+			bool bMatchResult = false;
+			switch (MatchRule.MatchMode)
 			{
-				bIsMatched = AssetPath.StartsWith(MatchRule.Rule);
-				break;
+			case EPathMatchMode::WithIn:
+				{
+					bMatchResult = AssetPath.StartsWith(RuleItem);
+					break;
+				}
+			case EPathMatchMode::Wildcard:
+				{
+					bMatchResult = AssetPath.MatchesWildcard(RuleItem,ESearchCase::IgnoreCase);
+					break;
+				}
 			}
-		case EPathMatchMode::Wildcard:
+			if(bMatchResult)
 			{
-				bIsMatched = AssetPath.MatchesWildcard(MatchRule.Rule,ESearchCase::IgnoreCase);
-				break;
+				OptionalMatchNum++;
 			}
 		}
-		bIsMatched = MatchRule.bReverseCheck ? !bIsMatched : bIsMatched;
+		bool bIsMatchAllRules = (OptionalMatchNum == MatchRule.Rules.Num());
+		bIsMatched = (MatchRule.MatchLogic == EMatchLogic::Necessary) ? bIsMatchAllRules : (MatchRule.OptionalRuleMatchNum == OptionalMatchNum);
 		if(!bIsMatched)
 		{
 			break;
 		}
+	}
+	if(Rule.PathMatchRules.Rules.Num())
+	{
+		bIsMatched = Rule.PathMatchRules.bReverseCheck ? !bIsMatched : bIsMatched;
 	}
 	return bIsMatched;
 }
@@ -269,23 +301,35 @@ bool PropertyMatchOperator::Match(const FAssetData& AssetData,const FScannerMatc
 		float RValue = UKismetStringLibrary::Conv_StringToFloat(R);
 		return (LValue == RValue);
 	};
-		
+	
 	for(const auto& MatchRule:Rule.PropertyMatchRules)
 	{
-		FString Value = UFlibAssetParseHelper::GetPropertyValueByName(Asset,MatchRule.PropertyName);
-		if(!Value.IsEmpty())
+		int32 OptionalMatchNum = 0;
+		for(const auto& PropertyRule:MatchRule.Rules)
 		{
-			bool bIsFloatType = IsFloatLambda(Asset,MatchRule.PropertyName);
-			if(!bIsFloatType)
+			bool bMatchResult = false;
+			FString Value = UFlibAssetParseHelper::GetPropertyValueByName(Asset,PropertyRule.PropertyName);
+			if(!Value.IsEmpty())
 			{
-				bIsMatched = Value.Equals(MatchRule.MatchValue);
+				bool bIsFloatType = IsFloatLambda(Asset,PropertyRule.PropertyName);
+				if(!bIsFloatType)
+				{
+					bMatchResult = Value.Equals(PropertyRule.MatchValue);
+				}
+				else
+				{
+					bMatchResult = IsFloatEqualLambda(Value,PropertyRule.MatchValue);
+				}
+				bMatchResult = (PropertyRule.MatchRule == EPropertyMatchRule::NotEqual) ? !bMatchResult : bMatchResult;
 			}
-			else
+			if(bMatchResult)
 			{
-				bIsMatched = IsFloatEqualLambda(Value,MatchRule.MatchValue);
+				OptionalMatchNum++;
 			}
-			bIsMatched = (MatchRule.MatchRule == EPropertyMatchRule::NotEqual) ? !bIsMatched : bIsMatched;
 		}
+		bool bIsMatchAllRules = (OptionalMatchNum == MatchRule.Rules.Num());
+		// Optional中匹配成功的数量必须与配置的一致
+		bIsMatched = (MatchRule.MatchLogic == EMatchLogic::Necessary) ? bIsMatchAllRules : (MatchRule.OptionalRuleMatchNum == OptionalMatchNum);
 		if(!bIsMatched)
 		{
 			break;
@@ -293,6 +337,7 @@ bool PropertyMatchOperator::Match(const FAssetData& AssetData,const FScannerMatc
 	}
 	return bIsMatched;
 }
+
 bool CustomMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchRule& Rule)
 {
 	bool bIsMatched = true;
@@ -304,7 +349,7 @@ bool CustomMatchOperator::Match(const FAssetData& AssetData,const FScannerMatchR
 			if(Operator)
 			{
 				bIsMatched = Operator->Match(AssetData.GetAsset(),AssetData.AssetClass.ToString());
-				if(!bIsMatched)
+				if(!bIsMatched && Operator->GetMatchLogic() == EMatchLogic::Necessary)
 				{
 					break;
 				}
