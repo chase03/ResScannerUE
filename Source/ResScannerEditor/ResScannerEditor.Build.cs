@@ -44,7 +44,8 @@ public class ResScannerEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"UnrealEd",
-				"EditorStyle"
+				"EditorStyle",
+				"InputCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

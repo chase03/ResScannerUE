@@ -1,4 +1,5 @@
 #include "ResScannerProxy.h"
+#include "FileHelper.h"
 
 DEFINE_LOG_CATEGORY(LogResScannerProxy);
 #define LOCTEXT_NAMESPACE "UResScannerProxy"

@@ -1,17 +1,30 @@
 #pragma once
-
+#include <string>
+#include "Resources/Version.h"
 #include "CoreMinimal.h"
 #include "JsonObjectConverter.h"
 
 namespace TemplateHelper
 {
+#if ENGINE_MAJOR_VERSION <= 4 && ENGINE_MINOR_VERSION <= 21
+	template<typename T>
+	static std::string GetCPPTypeName()
+	{
+		std::string result;
+		std::string type_name = typeid(T).name();
+
+		std::for_each(type_name.begin(),type_name.end(),[&result](const char& character){if(!std::isdigit(character)) result.push_back(character);});
+
+		return result;
+	}
+#endif
 	template<typename ENUM_TYPE>
 static UEnum* GetUEnum()
 	{
 #if ENGINE_MAJOR_VERSION > 4 || ENGINE_MINOR_VERSION > 21
 		UEnum* FoundEnum = StaticEnum<ENUM_TYPE>();
 #else
-		FString EnumTypeName = ANSI_TO_TCHAR(UFlibPatchParserHelper::GetCPPTypeName<ENUM_TYPE>().c_str());
+		FString EnumTypeName = ANSI_TO_TCHAR(TemplateHelper::GetCPPTypeName<ENUM_TYPE>().c_str());
 		UEnum* FoundEnum = FindObject<UEnum>(ANY_PACKAGE, *EnumTypeName, true); 
 #endif
 		return FoundEnum;

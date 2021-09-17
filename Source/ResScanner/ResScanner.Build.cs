@@ -1,5 +1,5 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
-
+using System.IO;
 using UnrealBuildTool;
 
 public class ResScanner : ModuleRules
@@ -10,9 +10,11 @@ public class ResScanner : ModuleRules
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
+				Path.Combine(EngineDirectory,"Source/Runtime/Launch"),
+				Path.Combine(ModuleDirectory,"Public")
 				// ... add public include paths required here ...
 			}
-			);
+		);
 				
 		
 		PrivateIncludePaths.AddRange(

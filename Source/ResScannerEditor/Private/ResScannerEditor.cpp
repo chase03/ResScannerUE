@@ -4,10 +4,6 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "LevelEditor.h"
 #include "ResScannerCommands.h"
-#if WITH_EDITOR_SECTION
-	#include "ToolMenuContext.h"
-	#include "ToolMenu.h"
-#endif
 #if ENGINE_MAJOR_VERSION > 4 || ENGINE_MINOR_VERSION>=26
 	#define InvokeTab TryInvokeTab
 #endif

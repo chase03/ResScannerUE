@@ -1,11 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
+#include "AssetData.h"
 #include "CoreMinimal.h"
 #include "FMatchRuleTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Widgets/Notifications/SNotificationList.h"
-
 #include "FlibAssetParseHelper.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFlibAssetParseHelper, Log, All);
@@ -22,10 +22,10 @@ public:
 	static FProperty* GetPropertyByName(UObject* Obj,const FString& PropertyName);
 	UFUNCTION(BlueprintCallable)
 	static FString GetPropertyValueByName(UObject* Obj,const FString& PropertyName);
-	static TArray<FAssetData> GetAssetsByFiltersByClass(const TArray<UClass*> AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
-	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
-	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString> AssetTypes,const TArray<FString>& FilterPaths);
-	static TArray<FAssetData> GetAssetsByObjectPath(const TArray<FSoftObjectPath> SoftObjectPaths);
+	static TArray<FAssetData> GetAssetsByFiltersByClass(const TArray<UClass*>& AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
+	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString>& AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys);
+	static TArray<FAssetData> GetAssetsByFilters(const TArray<FString>& AssetTypes,const TArray<FString>& FilterPaths);
+	static TArray<FAssetData> GetAssetsByObjectPath(const TArray<FSoftObjectPath>& SoftObjectPaths);
 	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<UClass*>& AssetTypes);
 	static TArray<FAssetData> GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets, const TArray<FString>& AssetTypes);
 	static class IAssetRegistry& GetAssetRegistry(bool bSearchAllAssets = false);

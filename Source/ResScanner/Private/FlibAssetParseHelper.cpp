@@ -5,6 +5,7 @@
 #include "TemplateHelper.hpp"
 
 // engine header
+#include "Async.h"
 #include "Kismet/KismetStringLibrary.h"
 #include "AssetRegistryModule.h"
 #include "ARFilter.h"
@@ -58,13 +59,12 @@ FString UFlibAssetParseHelper::GetPropertyValueByName(UObject* Obj, const FStrin
 	FProperty* Property = UFlibAssetParseHelper::GetPropertyByName(Obj, PropertyName);
 	if(Property)
 	{
-		Property->ExportTextItem(Result,Property->ContainerPtrToValuePtr<void*>(Obj),TEXT(""),NULL,NULL);
+		Property->ExportTextItem(Result,Property->ContainerPtrToValuePtr<void*>(Obj),TEXT(""),NULL,0);
 	}
 	return Result;
 }
 
-TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFiltersByClass(const TArray<UClass*> AssetTypes,
-	const TArray<FDirectoryPath>& FilterDirectorys)
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFiltersByClass(const TArray<UClass*>& AssetTypes,const TArray<FDirectoryPath>& FilterDirectorys)
 {
 	TArray<FString> Types;
 	for(auto& Type:AssetTypes)
@@ -74,10 +74,10 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFiltersByClass(const TArray
 			Types.AddUnique(Type->GetName());
 		}
 	}
-	return std::move(UFlibAssetParseHelper::GetAssetsByFilters(Types,FilterDirectorys));
+	return UFlibAssetParseHelper::GetAssetsByFilters(Types,FilterDirectorys);
 }
 
-TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString>& AssetTypes,
                                                              const TArray<FDirectoryPath>& FilterDirectorys)
 {
 	TArray<FString> FilterPaths;
@@ -85,10 +85,10 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FStrin
 	{
 		FilterPaths.AddUnique(Directory.Path);
 	}
-	return std::move(UFlibAssetParseHelper::GetAssetsByFilters(AssetTypes,FilterPaths));
+	return UFlibAssetParseHelper::GetAssetsByFilters(AssetTypes,FilterPaths);
 }
 
-TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString> AssetTypes,
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FString>& AssetTypes,
                                                              const TArray<FString>& FilterPaths)
 {
 	TArray<FAssetData> result;
@@ -97,10 +97,10 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByFilters(const TArray<FStrin
 	Filter.ClassNames.Append(AssetTypes);
 	Filter.bRecursivePaths = true;
 	UFlibAssetParseHelper::GetAssetRegistry().GetAssets(Filter, result);
-	return std::move(result);
+	return result;
 }
 
-TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSoftObjectPath> SoftObjectPaths)
+TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSoftObjectPath>& SoftObjectPaths)
 {
 	TArray<FAssetData> result;
 	UAssetManager& AssetManager = UAssetManager::Get();
@@ -112,7 +112,7 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsByObjectPath(const TArray<FSo
 			result.AddUnique(OutAssetData);
 		}
 	}
-	return std::move(result);
+	return result;
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
@@ -130,7 +130,7 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArra
 	{
 		UE_LOG(LogFlibAssetParseHelper,Error,TEXT("GetAssetsWithCachedByTypes Types is Emppty,Search all asset types."));
 	}
-	return std::move(UFlibAssetParseHelper::GetAssetsWithCachedByTypes(CachedAssets,Types));
+	return UFlibAssetParseHelper::GetAssetsWithCachedByTypes(CachedAssets,Types);
 }
 
 TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArray<FAssetData>& CachedAssets,
@@ -148,7 +148,7 @@ TArray<FAssetData> UFlibAssetParseHelper::GetAssetsWithCachedByTypes(const TArra
 			}
 		}
 	}
-	return std::move(result);
+	return result;
 }
 
 
@@ -302,7 +302,7 @@ bool PropertyMatchOperator::Match(const FAssetData& AssetData,const FScannerMatc
 		return (LValue == RValue);
 	};
 	
-	for(const auto& MatchRule:Rule.PropertyMatchRules)
+	for(const auto& MatchRule:Rule.PropertyMatchRules.Rules)
 	{
 		int32 OptionalMatchNum = 0;
 		for(const auto& PropertyRule:MatchRule.Rules)
@@ -334,6 +334,10 @@ bool PropertyMatchOperator::Match(const FAssetData& AssetData,const FScannerMatc
 		{
 			break;
 		}
+	}
+	if(Rule.PropertyMatchRules.Rules.Num())
+	{
+		bIsMatched = Rule.PropertyMatchRules.bReverseCheck ? !bIsMatched : bIsMatched;
 	}
 	return bIsMatched;
 }

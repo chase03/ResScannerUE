@@ -1,6 +1,7 @@
 #pragma once
 #include "TemplateHelper.hpp"
 // engine header
+#include "AssetData.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "FMatchRuleTypes.generated.h"
@@ -110,7 +111,7 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FPropertyMatchRule
+struct FPropertyRule
 {
 	GENERATED_USTRUCT_BODY()
 public:
@@ -121,6 +122,24 @@ public:
 	int32 OptionalRuleMatchNum = 1;
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	TArray<FPropertyMatchMapping> Rules;
+	
+};
+USTRUCT(BlueprintType)
+struct FPropertyMatchRule
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	// 匹配规则，是必须的还是可选的，Necessary是必须匹配所有的规则，Optional则只需要匹配规则中的一个
+	// UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	// EMatchLogic MatchLogic;
+	// // UPROPERTY(EditAnywhere,BlueprintReadWrite,meta=(EditCondition="MatchLogic == EMatchLogic::Optional"))
+	// int32 OptionalRuleMatchNum = 1;
+	// UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	// TArray<FPropertyMatchMapping> Rules;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	TArray<FPropertyRule> Rules;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+    bool bReverseCheck;
 };
 
 USTRUCT(BlueprintType)
@@ -207,7 +226,7 @@ public:
 	FPathMatchRule PathMatchRules;
 	// 属性匹配规则
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
-	TArray<FPropertyMatchRule> PropertyMatchRules;
+	FPropertyMatchRule PropertyMatchRules;
 	// 自定义匹配规则（派生自UOperatorBase的类）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter")
 	TArray<TSubclassOf<UOperatorBase>> CustomRules;
@@ -221,7 +240,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = "Filter",meta=(EditCondition="bEnablePostProcessor"))
 	TArray<TSubclassOf<UScannnerPostProcessorBase>> PostProcessors;
 	
-	bool HasValidRules()const { return (NameMatchRules.Rules.Num() || PathMatchRules.Rules.Num() || PropertyMatchRules.Num() || CustomRules.Num()); }
+	bool HasValidRules()const { return (NameMatchRules.Rules.Num() || PathMatchRules.Rules.Num() || PropertyMatchRules.Rules.Num() || CustomRules.Num()); }
 };
 
 
