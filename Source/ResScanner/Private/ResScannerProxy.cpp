@@ -49,10 +49,16 @@ void UResScannerProxy::DoScan()
 			UE_LOG(LogResScannerProxy,Warning,TEXT("rule %s not contain any rules!"),*ScannerRule.RuleName);
 			continue;
 		}
-		TArray<FAssetData> FilterAssets = GetScannerConfig()->bByGlobalScanFilters ?
-			UFlibAssetParseHelper::GetAssetsWithCachedByTypes(GlobalAssets,TArray<UClass*>{ScannerRule.ScanAssetType}):
-			UFlibAssetParseHelper::GetAssetsByFiltersByClass(TArray<UClass*>{ScannerRule.ScanAssetType},ScannerRule.ScanFilters);
-
+		TArray<FAssetData> FilterAssets;
+		if(GetScannerConfig()->bByGlobalScanFilters)
+		{
+			FilterAssets = UFlibAssetParseHelper::GetAssetsWithCachedByTypes(GlobalAssets,TArray<UClass*>{ScannerRule.ScanAssetType});
+		}
+		else
+		{
+			FilterAssets = UFlibAssetParseHelper::GetAssetsByFiltersByClass(TArray<UClass*>{ScannerRule.ScanAssetType},ScannerRule.ScanFilters);
+		}
+		
 		RuleMatchedInfo.RuleName = ScannerRule.RuleName;
 		RuleMatchedInfo.RuleDescribe = ScannerRule.RuleDescribe;
 		RuleMatchedInfo.RuleID  = RuleID;
